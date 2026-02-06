@@ -1,12 +1,14 @@
 # python virtual environment
 env/
 venv/
+.venv/
 
 # vscode folder
 .vscode
 
 # jupyter checkpoints
 .ipynb_checkpoints
+.pytest_cache/
 
 # Zone Identifiers
 *.Identifier
@@ -16,3 +18,22 @@ __pycache__/
 
 # virtual documents
 .virtual_documents/
+
+# UV files
+.python-version
+uv.lock
+
+# folders
+data/
+reports/
+notebooks/
+
+# Model artifacts (large binary files)
+artifacts/*.joblib
+customer_churn_prediction.egg-info/
+
+# Streamlit cache
+.streamlit/
+
+# Docker
+.dockerignore
