@@ -14,8 +14,18 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import shap
 
 from scripts.config import CATEGORICAL_COLS, RISK_THRESHOLDS
+
+# Prefixes used by one-hot encoding that should be aggregated
+# back to a single original feature name for display.
+_ONE_HOT_PREFIXES = {
+    "State_": "State",
+    "Area_Code_": "Area Code",
+    "International_Plan_": "International Plan",
+    "Voice_Mail_Plan_": "Voice Mail Plan",
+}
 
 
 class ChurnPredictor:
@@ -42,6 +52,8 @@ class ChurnPredictor:
 
         with open(artifacts_dir / "dropped_features.json") as f:
             self.dropped_features = json.load(f)
+
+        self.explainer = shap.TreeExplainer(self.model)
 
     def preprocess_input(self, data):
         """
@@ -102,6 +114,48 @@ class ChurnPredictor:
             return "high"
         return "medium"
 
+    def _aggregate_shap_values(self, shap_values):
+        """
+        Aggregate encoded SHAP values back to original feature names.
+
+        Groups one-hot encoded features (State_*, Area_Code_*, etc.) by summing
+        their SHAP contributions. Returns the top 10 contributors sorted by
+        absolute contribution.
+
+        Args:
+            shap_values (np.ndarray): SHAP values for a single prediction.
+
+        Returns:
+            list[dict]: [{"feature": str, "contribution": float}, ...] top 10.
+        """
+        aggregated = {}
+
+        for feature_name, value in zip(self.feature_names, shap_values):
+            # Check if this feature belongs to a one-hot group
+            original_name = None
+            for prefix, name in _ONE_HOT_PREFIXES.items():
+                if feature_name.startswith(prefix):
+                    original_name = name
+                    break
+
+            if original_name is None:
+                # Numeric feature — make display-friendly
+                original_name = feature_name.replace("_", " ")
+
+            aggregated[original_name] = aggregated.get(original_name, 0.0) + float(value)
+
+        # Sort by absolute contribution, descending
+        sorted_contributions = sorted(
+            aggregated.items(),
+            key=lambda item: abs(item[1]),
+            reverse=True,
+        )
+
+        return [
+            {"feature": name, "contribution": round(contrib, 4)}
+            for name, contrib in sorted_contributions[:10]
+        ]
+
     def predict(self, data):
         """
         Predict churn for a single customer.
@@ -110,17 +164,22 @@ class ChurnPredictor:
             data (dict): Raw customer features.
 
         Returns:
-            dict: {"churn": bool, "churn_probability": float, "risk_level": str}
+            dict: {"churn": bool, "churn_probability": float, "risk_level": str,
+                   "feature_contributions": list[dict]}
         """
         scaled = self.preprocess_input(data)
 
         prediction = self.model.predict(scaled)[0]
         probability = float(self.model.predict_proba(scaled)[0, 1])
 
+        shap_values = self.explainer.shap_values(scaled)
+        contributions = self._aggregate_shap_values(shap_values[0])
+
         return {
             "churn": bool(prediction),
             "churn_probability": round(probability, 4),
             "risk_level": self._classify_risk(probability),
+            "feature_contributions": contributions,
         }
 
     def predict_batch(self, data_list):

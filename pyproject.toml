@@ -43,6 +43,7 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "streamlit>=1.40.0",
     "pydantic>=2.10.0",
+    "shap>=0.42.0",
 ]
 
 [dependency-groups]

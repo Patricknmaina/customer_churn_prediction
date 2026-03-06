@@ -21,15 +21,14 @@ __pycache__/
 
 # UV files
 .python-version
-uv.lock
 
 # folders
 data/
 reports/
-notebooks/
+images/
 
-# Model artifacts (large binary files)
-artifacts/*.joblib
+# Model artifacts — committed to git so CI/CD builds work
+# artifacts/*.joblib
 customer_churn_prediction.egg-info/
 
 # Streamlit cache
@@ -37,3 +36,9 @@ customer_churn_prediction.egg-info/
 
 # Docker
 .dockerignore
+
+# Python version
+.python-version
+
+# UV files
+uv.lock

@@ -70,14 +70,24 @@ class CustomerInput(BaseModel):
         }
 
 
+class FeatureContribution(BaseModel):
+    """
+    A single feature's contribution to the churn prediction.
+    """
+
+    feature: str
+    contribution: float
+
+
 class PredictionResponse(BaseModel):
     """
-    Single customer prediction result.
+    Single customer prediction result with per-feature explanations.
     """
 
     churn: bool
     churn_probability: float = Field(..., ge=0.0, le=1.0)
     risk_level: str  # "low", "medium", or "high"
+    feature_contributions: list[FeatureContribution] = []
 
 
 class BatchPredictionRequest(BaseModel):

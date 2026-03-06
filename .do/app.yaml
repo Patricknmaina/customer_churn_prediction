@@ -1,0 +1,23 @@
+name: churn-prediction-api
+# Regions: nyc, sfo, ams, sgp, lon, fra, blr, syd
+region: nyc
+
+services:
+  - name: api
+    image:
+      registry_type: DOCR
+      # Replace with the registry name you created via: doctl registry create <name>
+      registry: customer-churn-registry
+      repository: churn-api
+      tag: latest
+    http_port: 8000
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3
+    # basic-xxs = $5/month (512 MB RAM, 1 vCPU shared)
+    # basic-xs  = $10/month (1 GB RAM, 1 vCPU shared) — upgrade if model loading is slow
+    instance_size_slug: basic-xxs
+    instance_count: 1
