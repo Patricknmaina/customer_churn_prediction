@@ -173,7 +173,10 @@ class ChurnPredictor:
         probability = float(self.model.predict_proba(scaled)[0, 1])
 
         shap_values = self.explainer.shap_values(scaled)
-        contributions = self._aggregate_shap_values(shap_values[0])
+        sv = np.asarray(shap_values[0])
+        if sv.ndim == 2:
+            sv = sv[:, 1]  # binary classifier: take class-1 (churn) SHAP values
+        contributions = self._aggregate_shap_values(sv)
 
         return {
             "churn": bool(prediction),
