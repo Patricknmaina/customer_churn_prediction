@@ -92,7 +92,7 @@ class TestPredict:
 
     def test_has_required_keys(self, predictor, valid_customer_input):
         result = predictor.predict(valid_customer_input)
-        assert set(result.keys()) == {"churn", "churn_probability", "risk_level"}
+        assert set(result.keys()) == {"churn", "churn_probability", "risk_level", "feature_contributions"}
 
     def test_churn_is_bool(self, predictor, valid_customer_input):
         result = predictor.predict(valid_customer_input)
@@ -126,7 +126,7 @@ class TestPredictBatch:
     def test_each_element_has_correct_keys(self, predictor, valid_customer_input):
         results = predictor.predict_batch([valid_customer_input])
         for r in results:
-            assert set(r.keys()) == {"churn", "churn_probability", "risk_level"}
+            assert set(r.keys()) == {"churn", "churn_probability", "risk_level", "feature_contributions"}
 
     def test_empty_list(self, predictor):
         results = predictor.predict_batch([])
