@@ -39,6 +39,3 @@ customer_churn_prediction.egg-info/
 
 # Python version
 .python-version
-
-# UV files
-uv.lock
