@@ -1,179 +1,300 @@
-# ☎️ SyriaTel Customer Churn Prediction
+# **Customer Churn Prediction**
 
 Author: [Patrick Maina](https://github.com/Patricknmaina)
 
-This project aims to develop a prediction model for SyriaTel Telecommunication company, that will be able to predict customer churn from the company.
+A production ML system that predicts customer churn for a Telecommunication company. The project includes a trained XGBoost model, a REST API backend deployed on DigitalOcean, and an interactive Streamlit dashboard deployed on Streamlit Community Cloud.
 
-## 💼 **Business Understanding.**
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        GitHub                           │
+│  Push to main → CI/CD (GitHub Actions)                  │
+│    └── Run tests                                        │
+│    └── Build Docker image                               │
+│    └── Push to DigitalOcean Container Registry (DOCR)   │
+│    └── Trigger App Platform deployment                  │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       ▼
+        ┌──────────────────────────┐
+        │  DigitalOcean App        │
+        │  Platform (FastAPI)      │  ◄── Streamlit Community Cloud
+        │  /predict  /predict/batch│       (streamlit/app.py)
+        │  /health                 │
+        └──────────────────────────┘
+```
+
+- **Backend**: FastAPI on DigitalOcean App Platform — handles all predictions, preprocessing, and SHAP explanations (Explainable AI)
+- **Frontend**: Streamlit on Streamlit Community Cloud — pure HTTP client, calls the backend API
+- **Registry**: DigitalOcean Container Registry stores versioned Docker images
+- **CI/CD**: GitHub Actions runs tests and deploys on every push to `main`
+
+## Features
+
+- **Single Prediction** — Enter customer details and get an instant churn prediction with probability score, risk level (low/medium/high), and a SHAP feature contribution chart explaining the top 10 drivers
+- **Batch Prediction** — Upload a CSV of customers, get predictions for all of them, and download the results
+- **Explainability** — SHAP values aggregated back to original feature names, showing which factors increase or decrease churn risk
+- **REST API** — `POST /predict` and `POST /predict/batch` endpoints for programmatic access
+
+---
+
+## Business Understanding
 
 ### Introduction
-The telecommunications industry has become very competitive over the years, with customer retention emerging as a critical challenge. One of the major issues facing telecom providers is customer churn - a scenario where users discontinue their service, either due to dissatisfaction from the provider, or due to the availability of better alternatives. High churn rates can significantly impact a company's overall revenue, and scaling potential.
+The telecommunications industry has become very competitive over the years, with customer retention emerging as a critical challenge. One of the major issues facing telecom providers is customer churn; a scenario where users discontinue their service, either due to dissatisfaction from the provider, or due to the availability of better alternatives. High churn rates can significantly impact a company's overall revenue and scaling potential.
 
-In response to this challenge, telecom companies are exploring churn prediction mechanisms, which will proactively address customer concerns, improve service delivery, and implement targeted retention strategies. In light of this, this project aims to develop a predictive model that will identify customers at risk of churning, helping SyriaTel Telecommunications company minimize churn, and enhance long-term profitability.
+### Problem Statement
+SyriaTel, a leading telecom provider, is experiencing a significant loss of customers who are choosing to leave its services for competitors. To address this challenge, the company seeks to build a robust predictive model capable of identifying customers who are at risk of churning. By leveraging data-driven insights and predictive modeling, SyriaTel aims to understand the key drivers of customer attrition, determine methods of improving long-term retention, and enhance long-term customer loyalty and profitability.
 
-### Problem Statement.
-SyriaTel, a leading telecom provider, is experiencing a significant loss of customers who are choosing to leave its services for other competitors. To address this challenge, the company seeks to build a robust predictive model capable of identifying customers who are at risk of churning. By leveraging on data-driven insights and predictive modeling, SyriaTel aims to understand the key drivers of customer attrition, determing methods of improving long-term retention of customers, and enhance long-term customer loyalty and profitability.
+### Objectives
+- Determine the key characteristics and behavior patterns that likely contribute to customer churn
+- Build a robust predictive model that identifies customers with a high likelihood of discontinuing their service
+- Provide data-driven insights and recommendations that will proactively engage and retain high-risk customers
 
-### Objectives.
-The main objectives for this project are:
-- To determine the key characteristics and behavior patterns that likely contribute to customer churn.
+## Dataset
 
-- To build a robust predictive model that will identify customers with a high likelihood of discontinuing their service.
+This project uses the [Telecom Churn Dataset](https://www.kaggle.com/datasets/becksddf/churn-in-telecoms-dataset) from Kaggle (3,333 customers). Key attributes include:
 
-- To provide data-driven insights and recommendations that will proactively engage, and retain high-risk customers.
+- **State and Area Code** — geographic identifiers
+- **International and Voice Mail Plans** — subscription plan flags
+- **Call rates** — day, night, evening, and international charge rates
+- **Customer Service Calls** — number of support interactions
 
-## 📊 Dataset
-This analysis and modeling utilizes the [Telecom Churn Dataset](https://www.kaggle.com/datasets/becksddf/churn-in-telecoms-dataset) from Kaggle. The dataset includes essential customer-churn attributes such as:
+## Methodology
 
-- **State and Area code**: It contains the different states and area codes of the customers subscribed to SyriaTel company, both who are churning and who are not churning from the company.
+### 1. Data Exploration
+Loading, inspecting for missing values/duplicates, and computing descriptive statistics.
 
-- **International and Voice Mail Plans**: It gives directive as to which customers are subscribed to either an International plan, voice mail plan, both, or even none.
+### 2. Data Cleaning
+Standardizing column names, converting `Area_Code` to object type, dropping `Phone_Number`, and removing highly correlated features (threshold: 0.9).
 
-- **Call rates**: It gives information on the different call rates for the customers for day, night, evening, and international calls
+### 3. Exploratory Data Analysis
+Univariate and bivariate analysis using distribution plots, correlation heatmaps, box plots, and bar charts.
 
-- **Customer Service calls**: It provides information on the number of customer service calls the customers are receiving from support staff in the company.
+### 4. Data Preprocessing
+One-hot encoding for categorical features, MinMaxScaler for numeric features, and SMOTENC for class imbalance.
 
-## 🔍 Methodology
-To ensure an effective data analysis and predictive modeling strategy, the notebook will follow a structured approach:
-### 1️⃣ Data Exploration
-- Loading of the dataset to analyze columns in the dataset, along with data types and number of records.
+### 5. Predictive Modeling
+Trained six models (Logistic Regression as baseline, Decision Tree, Random Forest, Gradient Boosting, XGBoost, and others) evaluated on recall and AUC-ROC.
 
-- Checking for missing values, duplicates or any inconsistencies in the data.
+### 6. Model Evaluation & Hyperparameter Tuning
+ROC curves, AUC scores, confusion matrices, and RandomizedSearchCV for the top two models.
 
-- Computing the descriptive statistics of the dataset to get an idea of the key statistical attributes.
-
-### 2️⃣ Data Manipulation
-- Standardizing the column names to have the same name formatting.
-
-- Converting the `Area_Code` feature to an object.
-
-- Dropping the `Phone_Number` feature from the dataset as it was not a major requirement in my analysis and modeling.
-
-### 3️⃣ Exploratory Data Analysis
-- Generating visualizations and plots to examine relationships between the features (`Univariate & Bivariate Analysis`).
-
-- Investigating the relationship between the features and the target (`Churn`) through visualizations such as **distribution plots**, **correlation heatmaps**, **box plots** and **bar plots**.
-
-- Handling outliers in the dataset.
-
-- Dropping columns that have high `multicollinearity`
-
-### 4️⃣ Data Preprocessing
-- Encoding the features in the dataset for ease of implementation in the modeling stage through techniques such as `Label Encoding` and `One-Hot Encoding`.
-
-- Scaling the numerical features to a range of (`0, 1`) using `MinMaxScaler`
-
-### 5️⃣ Predictive Modeling
-- Resampling the data to handle class imbalance in the target variable.
-
-- Implementing the `train_test_split` method to split the dataset into training and testing sets (`80/20 split`)
-
-- Training six different types of models to measure performance using `recall` and `ROC-AUC` metrics, with Logistic Regression as the baseline model.
-
-- Plotting the `confusion matrix` to evaluate the rate of true and false positives and negatives for each model.
-
-### 6️⃣ Model Evaluation
-- Plotting `ROC curves` and computing the `AUC scores` of all the six models, and doing a comparison of the curves and the AUC scores.
-
-- Computing the `recall` score of all the six models and comparing the scores of each model.
-
-- Determining the important features for the best performing model.
-
-### 7️⃣ Model Hyperparameter Tuning
-- Implementing `random search` on two key models for determining the best hyperparameters for each model.
-
-- Re-training the two models with the optimal hyperparameters, obtaining the classification report, and plotting the confusion matrix.
-
-### 8️⃣ Conclusions and Business Recommendations
-- Drawing conclusions from the analysis and modeling process.
-
-- Provision of data-driven insights and recommendations, based on the conducted analysis.
+---
 
 ## 📈 Crucial Visualizations
-Below are three critical visualizations that provide insights into the rate of churning of customers from SyriaTel Telecommunication company
 
-1️⃣ **Analyzing the Customer Service Calls by Rate of Churn**
+**Analyzing Customer Service Calls by Rate of Churn**
 
 ![customer_service_churn](images/customer_service_churn.jpg)
 
-2️⃣ **Distribution of the numerical feafures in the dataset**
+**Distribution of Numerical Features**
 
 ![numerical_dist](images/numerical_distribution.jpg)
 
-3️⃣ **Feature Correlation Heatmap**
+**Feature Correlation Heatmap**
 
 ![feature_heatmap](images/feature_heatmap.png)
 
-## 📝 Conclusion
-From my prediction modeling analysis, The XGBoost Classifier model had a recall score of `0.82`, while the Gradient Boosting model achieved a recall score of `0.81`. However, the Gradient Boosting model had a higher AUC score of `0.921`, while the XGBoost model had an AUC score of `0.911`. I was able to meet all my set objectives, which were to build a customer churn prediction model with a recall score of 0.8 and above, and to identify the key features that contribute significantly to customer churn, which include `Customer_Service_Calls`, `Total_Day_Charge`, and `International_Plan`. Due to the nature of the project and the prediction problem, I would recommend the `XGBoost classifier model` with a higher recall for predicting customer churn rates at SyriaTel Telecommunication company.
+---
 
-## 💼 Business Recommendations
-1. **Targeted Incentives for High-Churn Area Codes**
+## Conclusion
 
-    Customers in area codes `415` and `510` exhibit higher churn tendencies from my analysis. ***Offering specialized discounts, loyalty rewards, or exclusive promotions*** in these regions can serve as an effective incentive to retain these customers.
+The XGBoost Classifier achieved a recall score of `0.82` and AUC of `0.911`. The Gradient Boosting model achieved a slightly higher AUC of `0.921` but lower recall of `0.81`. Given the nature of churn prediction where missing a churner is more costly than a false alarm, the **XGBoost model** is recommended. Key churn drivers identified: `Customer_Service_Calls`, `Total_Day_Charge`, and `International_Plan`.
 
-2. **Enhance Customer Service Efficiency**
+## Business Recommendations
 
-    A high amount of customer service interactions with customers is seen to increase churn. ***Investing in comprehensive training sessions for support stuff***, and ***implmenting better issue/conflict resolution frameworks*** can significantly boost customer satisfation, and in turn minimize the rate of customer churn.
+1. **Targeted Incentives for High-Churn Area Codes** — Customers in area codes `415` and `510` exhibit higher churn tendencies. Offering specialized discounts, loyalty rewards, or exclusive promotions in these regions can serve as an effective retention incentive.
 
-3. **State-Specific Retention Strategies**
+2. **Enhance Customer Service Efficiency** — A high number of customer service interactions is correlated with increased churn. Investing in staff training and better conflict resolution frameworks can significantly boost customer satisfaction.
 
-    States such as **Texas, New Jersey, Maryland, Miami, and New York** reported an above-average churn rate. To mitigate this challenge, ***developing localized market efforts***, ***personalized engagement strategies***, and ***enhanced customer support*** in these regions would aid in strengthening customer loyalty and retention.
+3. **State-Specific Retention Strategies** — States such as Texas, New Jersey, Maryland, Miami, and New York report above-average churn. Developing localized marketing and enhanced customer support in these regions would strengthen retention.
 
-4. **Review and Optimize Call Rate Plans**
+4. **Review and Optimize Call Rate Plans** — Customers who churn often experience high day, evening, night, and international call rates. Introducing more competitive or bundled plans could make services more attractive.
 
-    Majority of the customers who churn experience high day, evening, night and international call rates. ***Reassessing the pricing model***, and ***introducing more competitive/bundled plans*** could make the services more attractive, and cost-effective for current users.
+---
 
-By leveraging these insights and recommendations, SyriaTel will be able to implement effective strategies that will enhance customer retention, and promote long-term profitability.
+## Local Development
 
-### 📶 Next Steps
-1. Further modification of the model:
-    - Implement `Grid search` in optimizing hyperparameters for model tuning.
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
 
-    - Implement other resampling techniques such as `class weights` to measure performance of our model.
+### Setup
 
-    - More feature engineering on the dataset to improve the robustness of the dataset for model training and evaluation.
+```bash
+git clone https://github.com/Patricknmaina/customer_churn_prediction.git
+cd customer_churn_prediction
+uv sync
+```
 
-    - Implementing `preprocessing pipelines` in the data preprocessing stage to minimize data leakage.
+### Run locally with Docker Compose
 
-2. Model deployment:
-    - Export the trained model, along with iany preprocessing steps (scalers, encoders, feature-engineering pipelines), and freeze the exact python library versions (`pip freeze`), to ensure consistency between training and production.
+```bash
+docker compose up
+```
 
-    - Create a Docker container that contains all the python and ML dependencies, and use tools like `Docker Compose` or `Kubernetes` to define the operation of the container.
+This starts both services:
+- FastAPI backend at `http://localhost:8000`
+- Streamlit dashboard at `http://localhost:8501`
 
-    - Wrap the model in a lightweight web framework such as `FastAPI` (This will be explored further).
+### Run tests
 
-    - Explore model deployment hubs and frameworks such as `Streamlit` and `Hugging Face` for deploying our prediction model.
+```bash
+uv run pytest tests/ -v --tb=short
+```
 
-    - Implement a Continuousous Integration/Continuous Deployment (`CI/CD`) pipeline that will automate steps such as:
-        - Running unit tests and validation during model retraining.
+### Retrain the model
 
-        - Building a fresh Docker image.
+```bash
+uv run train
+```
 
-        - Pushing the image to a container registry such as `Docker Hub`.
+This runs the full training pipeline and saves updated artifacts to `artifacts/`.
 
-        - Deploying to staging for final sanity checks.
-        
-        - Rolling out to production.
+## Deployment
 
-## ⚙️ Technologies Implemented
-- **Python**: `Pandas`, `Numpy`, `Matplotlib`, `Seaborn`, `Scikit-Learn`, `Scipy`
+### Backend — DigitalOcean App Platform
 
-- **Jupyter Notebook**
+The backend is deployed as a Docker container via DigitalOcean App Platform. The CI/CD pipeline handles all deployments automatically on push to `main`.
 
-## 📂 Repository Structure
-- `data/`: Contains the dataset implemented in the project
+#### One-time bootstrap (first deploy)
 
-- `images/`: Contains visualization images used in the README file
+**1. Authenticate with DigitalOcean:**
+```bash
+doctl auth init
+```
 
-- `models/`: Contains the different ML models implemented in the project
+**2. Create the container registry:**
+```bash
+doctl registry create customer-churn-registry --subscription-tier basic
+```
 
-- `reports/`: Contains the project documentations, including the stakeholder slide deck, and the CRISP DM documentation.
+**3. Build and push the image manually:**
+```bash
+doctl registry login --expiry-seconds 1200
+docker build --target api -t registry.digitalocean.com/customer-churn-registry/churn-api:latest .
+docker push registry.digitalocean.com/customer-churn-registry/churn-api:latest
+```
 
-- `.gitignore`: Omits some files and directories from being tracked by Git
+**4. Create the App Platform app:**
+```bash
+doctl apps create --spec .do/app.yaml
+```
 
-- `index.ipynb`: Jupyter Notebook containing the full analysis and modeling
+**5. Get the App ID and live URL:**
+```bash
+doctl apps list
+doctl apps get <APP_ID> --format DefaultIngress
+```
 
-- `requirements.txt`: Contains python dependencies implemented in the project
+#### CI/CD (automatic after bootstrap)
 
-- `utility.py`: Contains custom functions used in data preparation, visualization, modeling and model evaluation.
+Every push to `main` automatically:
+1. Runs tests (`uv run pytest`)
+2. Builds a new Docker image tagged with the commit SHA and `latest`
+3. Pushes the image to DOCR
+4. Triggers a new App Platform deployment
+
+**Required GitHub repository secrets:**
+
+| Secret | Value |
+|--------|-------|
+| `DIGITALOCEAN_ACCESS_TOKEN` | Your DigitalOcean API token |
+| `DOCR_REGISTRY` | `customer-churn-registry` |
+| `DIGITALOCEAN_APP_ID` | App ID from `doctl apps list` |
+
+Add these at: **GitHub repo → Settings → Secrets and variables → Actions**
+
+---
+
+### Frontend — Streamlit Community Cloud
+
+**1.** Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub
+
+**2.** Click **Create app** → **Deploy a public app from GitHub**
+
+**3.** Fill in:
+- Repository: `Patricknmaina/customer_churn_prediction`
+- Branch: `main`
+- Main file path: `streamlit/app.py`
+
+**4.** Click **Advanced settings** and add:
+```
+API_URL = https://<your-app-name>.ondigitalocean.app
+```
+
+**5.** Click **Deploy!**
+
+Community Cloud reads `streamlit/requirements.txt`, installs the four frontend dependencies, and serves the app at `https://<your-app-name>.streamlit.app`.
+
+---
+
+### Retraining the Model
+
+When new data is available or the model needs updating:
+
+```bash
+# 1. Retrain locally
+uv run train
+
+# 2. Commit the updated artifacts
+git add artifacts/
+git commit -m "retrain model - <reason>"
+git push
+```
+
+CI/CD picks up the push, rebuilds the Docker image with the new artifacts, and redeploys to DigitalOcean automatically.
+
+## Technologies
+
+| Category | Tools |
+|----------|-------|
+| **ML** | XGBoost 3.0, scikit-learn 1.6, SHAP 0.42+, imbalanced-learn 0.13 |
+| **API** | FastAPI 0.115+, Uvicorn 0.32+, Pydantic 2.10+ |
+| **Frontend** | Streamlit 1.40+, Plotly 6.1, pandas 2.2, requests |
+| **Packaging** | uv, joblib |
+| **Containerization** | Docker (multi-stage build), Docker Compose |
+| **CI/CD** | GitHub Actions |
+| **Hosting** | DigitalOcean App Platform (backend), Streamlit Community Cloud (frontend) |
+| **Registry** | DigitalOcean Container Registry (DOCR) |
+| **Testing** | pytest 8+, pytest-cov, httpx |
+
+## Repository Structure
+
+```
+customer_churn_prediction/
+├── api/                        # FastAPI backend
+│   ├── main.py                 # App entrypoint, endpoints (/health, /predict, /predict/batch)
+│   └── schemas.py              # Pydantic request/response models
+├── streamlit/                  # Streamlit dashboard
+│   ├── app.py                  # Interactive UI (Home, Single Prediction, Batch Prediction tabs)
+│   └── requirements.txt        # Frontend-only dependencies for Streamlit Community Cloud
+├── scripts/                    # ML pipeline
+│   ├── config.py               # Central constants (paths, features, thresholds, model params)
+│   ├── data_prep/              # Cleaning and preprocessing
+│   ├── eda/                    # EDA visualization utilities
+│   ├── modeling/               # Training, evaluation, hyperparameter tuning
+│   └── serving/                # ChurnPredictor inference engine (predict.py)
+├── tests/                      # Full test suite mirroring scripts/ structure
+├── artifacts/                  # Serialized model artifacts (committed for CI/CD builds)
+│   ├── model.joblib
+│   ├── scaler.joblib
+│   ├── encoder.joblib
+│   ├── label_encoder.joblib
+│   ├── feature_names.json
+│   └── dropped_features.json
+├── .do/
+│   └── app.yaml                # DigitalOcean App Platform deployment spec
+├── .github/workflows/
+│   └── deploy-api.yml          # CI/CD pipeline (test → build → push → deploy)
+├── Dockerfile                  # Multi-stage build (api target, streamlit target)
+├── docker-compose.yml          # Local development (both services)
+├── pyproject.toml              # Project metadata and dependencies
+└── data/
+    └── churn.csv               # Raw dataset (Kaggle Telecom Churn)
+```
+
+## License
+MIT License - see LICENSE file for details
