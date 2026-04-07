@@ -22,16 +22,17 @@ COPY api/ api/
 COPY streamlit/ streamlit/
 COPY artifacts/ artifacts/
 
-# FastAPI target 
-FROM base AS api
-
-EXPOSE 8000
-
-CMD ["sh", "-c", "uv run uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
-
 # Streamlit target 
 FROM base AS streamlit
 
 EXPOSE 8501
 
 CMD ["uv", "run", "streamlit", "run", "streamlit/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+
+# FastAPI target (kept as final stage so platforms that build the default
+# final image stage deploy the API service by default)
+FROM base AS api
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "uv run uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
