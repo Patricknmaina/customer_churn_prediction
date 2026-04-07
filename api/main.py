@@ -37,6 +37,12 @@ async def lifespan(app: FastAPI):
         print(f"Model loaded from {ARTIFACTS_DIR}")
     except FileNotFoundError:
         print(f"WARNING: Artifacts not found at {ARTIFACTS_DIR}. Run the training script first.")
+        predictor = None
+    except Exception as exc:
+        # Keep API process alive so /health is reachable for diagnostics
+        # even when model initialization fails in constrained environments.
+        predictor = None
+        print(f"ERROR: Failed to initialize model artifacts: {exc!r}")
     yield
 
 
