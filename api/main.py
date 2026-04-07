@@ -11,6 +11,7 @@ Endpoints:
 """
 
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 
@@ -22,10 +23,9 @@ from api.schemas import (
     PredictionResponse,
 )
 from scripts.config import ARTIFACTS_DIR
-from scripts.serving.predict import ChurnPredictor
 
 # Global predictor instance, loaded once at startup
-predictor: ChurnPredictor | None = None
+predictor: Any | None = None
 
 
 @asynccontextmanager
@@ -33,6 +33,10 @@ async def lifespan(app: FastAPI):
     """Load the model artifacts on startup."""
     global predictor
     try:
+        # Import lazily so startup can still succeed even if optional/native
+        # runtime deps (e.g., shap/xgboost) fail in the deployment environment.
+        from scripts.serving.predict import ChurnPredictor
+
         predictor = ChurnPredictor(artifacts_dir=ARTIFACTS_DIR)
         print(f"Model loaded from {ARTIFACTS_DIR}")
     except FileNotFoundError:
