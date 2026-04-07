@@ -2,7 +2,7 @@
 
 Author: [Patrick Maina](https://github.com/Patricknmaina)
 
-A production ML system that predicts customer churn for a Telecommunication company. The project includes a trained XGBoost model, a REST API backend deployed on DigitalOcean, and an interactive Streamlit dashboard deployed on Streamlit Community Cloud.
+A production ML system that predicts customer churn for a Telecommunication company. The project includes a trained XGBoost model, a REST API backend deployed on Railway, and an interactive Streamlit dashboard deployed on Streamlit Community Cloud.
 
 ## Architecture
 
@@ -11,24 +11,22 @@ A production ML system that predicts customer churn for a Telecommunication comp
 │                        GitHub                           │
 │  Push to main → CI/CD (GitHub Actions)                  │
 │    └── Run tests                                        │
-│    └── Build Docker image                               │
-│    └── Push to DigitalOcean Container Registry (DOCR)   │
-│    └── Trigger App Platform deployment                  │
+│    └── Report status to Railway                         │
 └──────────────────────┬──────────────────────────────────┘
                        │
                        ▼
         ┌──────────────────────────┐
-        │  DigitalOcean App        │
-        │  Platform (FastAPI)      │  ◄── Streamlit Community Cloud
+        │      Railway             │
+        │      FastAPI API         │  ◄── Streamlit Community Cloud
         │  /predict  /predict/batch│       (streamlit/app.py)
         │  /health                 │
         └──────────────────────────┘
 ```
 
-- **Backend**: FastAPI on DigitalOcean App Platform — handles all predictions, preprocessing, and SHAP explanations (Explainable AI)
+- **Backend**: FastAPI on Railway — handles all predictions, preprocessing, and SHAP explanations (Explainable AI)
 - **Frontend**: Streamlit on Streamlit Community Cloud — pure HTTP client, calls the backend API
-- **Registry**: DigitalOcean Container Registry stores versioned Docker images
-- **CI/CD**: GitHub Actions runs tests and deploys on every push to `main`
+- **Registry**: Railway builds and deploys from this repository's Dockerfile
+- **CI/CD**: GitHub Actions runs tests, and Railway deploys after checks pass
 
 ## Features
 
@@ -155,7 +153,7 @@ This runs the full training pipeline and saves updated artifacts to `artifacts/`
 
 ## Deployment
 
-### Backend — DigitalOcean App Platform
+### Backend — DigitalOcean App Platform (Legacy)
 
 The backend is deployed as a Docker container via DigitalOcean App Platform. The CI/CD pipeline handles all deployments automatically on push to `main`.
 
@@ -209,6 +207,51 @@ Add these at: **GitHub repo → Settings → Secrets and variables → Actions**
 
 ---
 
+### Backend — Railway (Migration Path)
+
+This repo now includes `railway.toml` for Railway config-as-code.
+
+Current Railway configuration:
+- Builder: `DOCKERFILE`
+- Dockerfile path: `Dockerfile`
+- Healthcheck path: `/health`
+- Healthcheck timeout: `300` seconds
+- Restart policy: `ON_FAILURE` (max retries: `10`)
+- Replicas: `1`
+
+#### One-time setup on Railway
+
+1. Create a new Railway project and service from this GitHub repository.
+2. Confirm the service is using the repo `Dockerfile` (or leave default detection).
+3. In service variables, set:
+   - `PYTHONUNBUFFERED=1`
+4. Deploy once and verify `GET /health` returns:
+   - `status: "healthy"`
+   - `model_loaded: true`
+5. Copy the public Railway backend URL for frontend configuration.
+
+#### Notes
+
+- The API container now binds to Railway's dynamic port using `${PORT:-8000}`.
+- Model artifacts are baked into the image (`artifacts/`), so inference works on Railway without external storage.
+- If you retrain locally, commit updated `artifacts/` and redeploy.
+
+#### CI/CD on Railway
+
+GitHub Actions now runs tests only. Deployment is handled by Railway GitHub Autodeploy.
+
+1. Open your Railway service.
+2. Enable GitHub Autodeploy for `main`.
+3. Enable `Wait for CI` in Railway deployment settings.
+4. Select this workflow as the required check: `CI — Backend Tests`.
+
+With this setup:
+1. A push to `main` triggers GitHub tests.
+2. Railway deploys only after CI succeeds.
+3. Failed CI blocks deployment.
+
+---
+
 ### Frontend — Streamlit Community Cloud
 
 **1.** Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub
@@ -222,7 +265,7 @@ Add these at: **GitHub repo → Settings → Secrets and variables → Actions**
 
 **4.** Click **Advanced settings** and add:
 ```
-API_URL = https://<your-app-name>.ondigitalocean.app
+API_URL = https://<your-railway-backend>.up.railway.app
 ```
 
 **5.** Click **Deploy!**
@@ -245,7 +288,7 @@ git commit -m "retrain model - <reason>"
 git push
 ```
 
-CI/CD picks up the push, rebuilds the Docker image with the new artifacts, and redeploys to DigitalOcean automatically.
+GitHub CI validates the push and Railway deploys the updated image after checks pass.
 
 ## Technologies
 
@@ -257,8 +300,8 @@ CI/CD picks up the push, rebuilds the Docker image with the new artifacts, and r
 | **Packaging** | uv, joblib |
 | **Containerization** | Docker (multi-stage build), Docker Compose |
 | **CI/CD** | GitHub Actions |
-| **Hosting** | DigitalOcean App Platform (backend), Streamlit Community Cloud (frontend) |
-| **Registry** | DigitalOcean Container Registry (DOCR) |
+| **Hosting** | Railway (backend), Streamlit Community Cloud (frontend) |
+| **Registry** | Railway-managed deployment pipeline |
 | **Testing** | pytest 8+, pytest-cov, httpx |
 
 ## Repository Structure
@@ -288,7 +331,7 @@ customer_churn_prediction/
 ├── .do/
 │   └── app.yaml                # DigitalOcean App Platform deployment spec
 ├── .github/workflows/
-│   └── deploy-api.yml          # CI/CD pipeline (test → build → push → deploy)
+│   └── deploy-api.yml          # CI pipeline (backend tests)
 ├── Dockerfile                  # Multi-stage build (api target, streamlit target)
 ├── docker-compose.yml          # Local development (both services)
 ├── pyproject.toml              # Project metadata and dependencies
