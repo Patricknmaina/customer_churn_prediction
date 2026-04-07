@@ -39,3 +39,6 @@ customer_churn_prediction.egg-info/
 
 # Python version
 .python-version
+
+# codex files
+.codex

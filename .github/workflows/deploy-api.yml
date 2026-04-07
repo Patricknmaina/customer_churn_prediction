@@ -1,4 +1,4 @@
-name: CI/CD — Deploy API
+name: CI — Backend Tests
 
 on:
   push:
@@ -23,36 +23,3 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short
-
-  deploy:
-    name: Build & Deploy
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install doctl
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
-      - name: Log in to DOCR
-        run: doctl registry login --expiry-seconds 1200
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            --target api \
-            -t registry.digitalocean.com/${{ secrets.DOCR_REGISTRY }}/churn-api:${{ github.sha }} \
-            -t registry.digitalocean.com/${{ secrets.DOCR_REGISTRY }}/churn-api:latest \
-            .
-
-      - name: Push Docker image
-        run: |
-          docker push registry.digitalocean.com/${{ secrets.DOCR_REGISTRY }}/churn-api:${{ github.sha }}
-          docker push registry.digitalocean.com/${{ secrets.DOCR_REGISTRY }}/churn-api:latest
-
-      - name: Trigger App Platform deployment
-        run: doctl apps create-deployment ${{ secrets.DIGITALOCEAN_APP_ID }}
