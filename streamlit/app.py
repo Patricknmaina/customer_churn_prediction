@@ -42,9 +42,17 @@ OPTIONAL_BATCH_COLUMNS: dict[str, tuple[list[str], Any]] = {
 SEGMENT_COLUMNS = ["State", "Area_Code", "International_Plan", "Voice_Mail_Plan"]
 RISK_ORDER = ["low", "medium", "high"]
 
+RISK_COLORS = {
+    "low": "#1C7A50",
+    "medium": "#9A6A12",
+    "high": "#B5403B",
+}
+
+PLOT_COLORS = ["#145DA0", "#3C91E6", "#9BC53D", "#F29E4C", "#B5403B"]
+
 
 # -----------------------------------------------------------------------------
-# Page and theme
+# Page and design system
 # -----------------------------------------------------------------------------
 
 st.set_page_config(
@@ -57,99 +65,253 @@ st.markdown(
     """
 <style>
 :root {
-  --surface: #f4f7fb;
-  --surface-card: #ffffff;
-  --text-primary: #10233d;
-  --text-secondary: #4d617a;
-  --border: #d9e2ee;
-  --brand: #0f4c81;
-  --brand-soft: #eaf2fa;
-  --risk-high: #b03a2e;
-  --risk-medium: #a56a00;
-  --risk-low: #1e7a4d;
+  --color-brand-700: #123E63;
+  --color-brand-600: #145DA0;
+  --color-brand-100: #E9F2FB;
+  --color-surface-0: #FFFFFF;
+  --color-surface-1: #F5F8FC;
+  --color-surface-2: #EEF3FA;
+  --color-border: #D7E0EA;
+  --color-text-strong: #0F2438;
+  --color-text-body: #3E5266;
+  --color-text-muted: #6C8093;
+  --color-success-bg: #EAF7F0;
+  --color-success-fg: #1C7A50;
+  --color-warning-bg: #FFF5E7;
+  --color-warning-fg: #9A6A12;
+  --color-error-bg: #FDEEEE;
+  --color-error-fg: #B5403B;
+  --color-info-bg: #EAF2FB;
+  --color-info-fg: #145DA0;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+
+  --font-display: 1.55rem;
+  --font-h2: 1.2rem;
+  --font-h3: 1.02rem;
+  --font-body: 0.95rem;
+  --font-caption: 0.84rem;
+
+  --line-body: 1.5;
 }
 
 .main .block-container {
-  padding-top: 1.2rem;
-  padding-bottom: 2rem;
+  max-width: 1260px;
+  padding-top: 1.1rem;
+  padding-bottom: 2.2rem;
 }
 
-.ops-card {
-  background: var(--surface-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1rem 1.1rem;
+.layout-shell {
+  background: linear-gradient(135deg, #f7fbff 0%, #eef3fa 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-6) var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
-.ops-card h4 {
-  margin: 0 0 0.35rem 0;
-  color: var(--text-primary);
-  font-size: 1.0rem;
-}
-
-.ops-card p {
+.layout-header {
+  font-size: var(--font-display);
+  line-height: 1.2;
+  color: var(--color-text-strong);
   margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-weight: 700;
 }
 
-.kpi-row {
-  border: 1px solid var(--border);
-  background: var(--surface-card);
-  border-radius: 12px;
-  padding: 0.8rem 0.9rem;
+.layout-subtitle {
+  margin: var(--space-2) 0 0 0;
+  color: var(--color-text-body);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.section-title {
+  font-size: var(--font-h2);
+  margin: var(--space-5) 0 var(--space-3) 0;
+  color: var(--color-text-strong);
+  font-weight: 650;
+}
+
+.card-panel {
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.card-panel h4 {
+  margin: 0 0 var(--space-2) 0;
+  color: var(--color-text-strong);
+  font-size: var(--font-h3);
+}
+
+.card-panel p {
+  margin: 0;
+  color: var(--color-text-body);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+.card-kpi {
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.card-kpi .kpi-label {
+  font-size: var(--font-caption);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.card-kpi .kpi-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text-strong);
 }
 
 .status-chip {
   border-radius: 999px;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.78rem;
-  font-weight: 600;
+  padding: 0.25rem 0.72rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   display: inline-block;
 }
 
-.status-chip.ok {
-  background: #e6f5ed;
-  color: var(--risk-low);
+.status-ok {
+  background: var(--color-success-bg);
+  color: var(--color-success-fg);
 }
 
-.status-chip.warn {
-  background: #fff3dd;
-  color: var(--risk-medium);
+.status-warn {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-fg);
 }
 
-.status-chip.err {
-  background: #fce9e7;
-  color: var(--risk-high);
+.status-err {
+  background: var(--color-error-bg);
+  color: var(--color-error-fg);
+}
+
+.alert-box {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-2) 0;
+  font-size: var(--font-body);
+}
+
+.alert-info {
+  background: var(--color-info-bg);
+  color: var(--color-info-fg);
+}
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-fg);
+}
+
+.alert-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-fg);
 }
 
 .result-banner {
-  border-radius: 12px;
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  padding: var(--space-4);
+  font-size: var(--font-h3);
+  font-weight: 650;
+}
+
+.result-low {
+  background: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+
+.result-medium {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-fg);
+}
+
+.result-high {
+  background: var(--color-error-bg);
+  color: var(--color-error-fg);
+}
+
+.table-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  margin-top: var(--space-1);
+}
+
+div[data-testid="stDataFrame"] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+div[data-testid="stMetric"] {
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+}
+
+div[data-testid="stForm"] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-0);
+}
+
+div[data-testid="stExpander"] {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.stButton > button, .stDownloadButton > button {
+  border-radius: var(--radius-sm);
+  border: 1px solid #b9c9db;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
   font-weight: 600;
 }
 
-.result-banner.low {
-  background: #ecf8f1;
-  color: var(--risk-low);
+.stButton > button:hover, .stDownloadButton > button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(20, 93, 160, 0.14);
 }
 
-.result-banner.medium {
-  background: #fff8e8;
-  color: var(--risk-medium);
+.stButton > button:focus-visible,
+.stDownloadButton > button:focus-visible {
+  outline: 3px solid rgba(20, 93, 160, 0.33);
+  outline-offset: 2px;
 }
 
-.result-banner.high {
-  background: #fcebeb;
-  color: var(--risk-high);
+hr {
+  margin-top: 0.8rem;
+  margin-bottom: 0.8rem;
+  border-color: var(--color-border);
 }
 
-@media (max-width: 920px) {
+@media (max-width: 980px) {
   .main .block-container {
-    padding-left: 0.8rem;
-    padding-right: 0.8rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .layout-shell {
+    padding: var(--space-4);
   }
 }
 </style>
@@ -342,9 +504,16 @@ def build_batch_customers(
                 if resolved is None:
                     continue
 
-                if api_field in {"state"}:
+                if api_field == "state":
                     customer[api_field] = _coerce_row_value(row[resolved], default_value)
-                elif api_field in {"area_code", "number_vmail_messages", "total_day_calls", "total_eve_calls", "total_night_calls", "account_length"}:
+                elif api_field in {
+                    "area_code",
+                    "number_vmail_messages",
+                    "total_day_calls",
+                    "total_eve_calls",
+                    "total_night_calls",
+                    "account_length",
+                }:
                     customer[api_field] = _coerce_row_value(row[resolved], default_value, numeric=True, integer=True)
 
             if customer["international_plan"] not in {"yes", "no"}:
@@ -416,18 +585,80 @@ def build_segment_breakdown(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
     return segment
 
 
+def apply_plotly_theme(fig: go.Figure, *, height: int = 340, title: str = "") -> go.Figure:
+    fig.update_layout(
+        title=title,
+        height=height,
+        colorway=PLOT_COLORS,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#FFFFFF",
+        font={"family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial", "size": 13, "color": "#1C334A"},
+        margin={"l": 6, "r": 6, "t": 42, "b": 22},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
+        hoverlabel={"font_size": 12},
+    )
+    fig.update_xaxes(gridcolor="#E8EEF5", zerolinecolor="#DCE5EF")
+    fig.update_yaxes(gridcolor="#E8EEF5", zerolinecolor="#DCE5EF")
+    return fig
+
+
 # -----------------------------------------------------------------------------
 # Rendering helpers
 # -----------------------------------------------------------------------------
 
+def render_page_header(title: str, subtitle: str) -> None:
+    st.markdown(
+        f"""
+<div class="layout-shell">
+  <h1 class="layout-header">{title}</h1>
+  <p class="layout-subtitle">{subtitle}</p>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_panel(title: str, body: str) -> None:
+    st.markdown(
+        f"""
+<div class="card-panel">
+  <h4>{title}</h4>
+  <p>{body}</p>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_alert(kind: str, text: str) -> None:
+    class_name = {
+        "info": "alert-info",
+        "warning": "alert-warning",
+        "error": "alert-error",
+    }.get(kind, "alert-info")
+    st.markdown(f'<div class="alert-box {class_name}">{text}</div>', unsafe_allow_html=True)
+
+
+def render_kpi_card(label: str, value: str) -> None:
+    st.markdown(
+        f"""
+<div class="card-kpi">
+  <div class="kpi-label">{label}</div>
+  <div class="kpi-value">{value}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
 def render_sidebar_status(api_ok: bool, model_loaded: bool, health_message: str) -> str:
-    st.sidebar.title("Operations Control")
+    st.sidebar.markdown("### Operations Control")
     if api_ok and model_loaded:
-        st.sidebar.markdown('<span class="status-chip ok">API CONNECTED | MODEL READY</span>', unsafe_allow_html=True)
+        st.sidebar.markdown('<span class="status-chip status-ok">API CONNECTED | MODEL READY</span>', unsafe_allow_html=True)
     elif api_ok and not model_loaded:
-        st.sidebar.markdown('<span class="status-chip warn">API CONNECTED | MODEL NOT READY</span>', unsafe_allow_html=True)
+        st.sidebar.markdown('<span class="status-chip status-warn">API CONNECTED | MODEL NOT READY</span>', unsafe_allow_html=True)
     else:
-        st.sidebar.markdown('<span class="status-chip err">API UNAVAILABLE</span>', unsafe_allow_html=True)
+        st.sidebar.markdown('<span class="status-chip status-err">API UNAVAILABLE</span>', unsafe_allow_html=True)
 
     st.sidebar.caption(health_message)
     st.sidebar.caption(f"Endpoint: `{API_URL}`")
@@ -436,85 +667,66 @@ def render_sidebar_status(api_ok: bool, model_loaded: bool, health_message: str)
     if "workspace" not in st.session_state:
         st.session_state["workspace"] = "Overview"
 
+    st.sidebar.caption("Workspace")
     return st.sidebar.radio(
         "Workspace",
         ["Overview", "Single Prediction", "Batch Operations"],
+        label_visibility="collapsed",
         key="workspace",
     )
 
 
 def render_overview(api_ok: bool, model_loaded: bool) -> None:
-    st.title("SyriaTel Retention Operations Console")
-    st.caption("Operational decision support for customer churn mitigation.")
+    render_page_header(
+        "SyriaTel Retention Operations Console",
+        "Operator workspace for churn triage, scoring, and retention prioritization.",
+    )
 
-    r1, r2, r3 = st.columns(3)
-    with r1:
-        st.metric("Base churn rate", "14.5%")
-    with r2:
-        st.metric("Model", "XGBoost")
-    with r3:
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        render_kpi_card("Base churn rate", "14.5%")
+    with m2:
+        render_kpi_card("Model", "XGBoost")
+    with m3:
         readiness = "Ready" if api_ok and model_loaded else "Attention Needed"
-        st.metric("System readiness", readiness)
+        render_kpi_card("System readiness", readiness)
 
-    st.markdown("### Readiness")
+    st.markdown('<h3 class="section-title">Readiness and actions</h3>', unsafe_allow_html=True)
     readiness_text = (
-        "System is ready for live triage and batch scoring."
+        "Service and model are available for live triage and batch scoring."
         if api_ok and model_loaded
-        else "Prediction service is not fully ready. Resolve API/model state before operations."
+        else "Service is reachable but not fully operational. Resolve backend/model readiness before production use."
     )
-    st.markdown(
-        f"""
-<div class="ops-card">
-  <h4>Current service state</h4>
-  <p>{readiness_text}</p>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+    c1, c2 = st.columns([1.4, 1])
+    with c1:
+        render_panel("Current service state", readiness_text)
+    with c2:
+        render_panel(
+            "Operational guidance",
+            "Use batch scoring for workload prioritization and single-customer triage for real-time intervention.",
+        )
 
-    st.markdown("### Quick actions")
-    q1, q2 = st.columns(2)
-    with q1:
-        if st.button("Open single prediction workflow", use_container_width=True):
+    a1, a2 = st.columns(2)
+    with a1:
+        if st.button("Open single prediction", use_container_width=True):
             st.session_state["workspace"] = "Single Prediction"
             st.rerun()
-    with q2:
-        if st.button("Open batch operations workflow", use_container_width=True):
+    with a2:
+        if st.button("Open batch operations", use_container_width=True):
             st.session_state["workspace"] = "Batch Operations"
             st.rerun()
 
-    st.markdown("### Model usage guidance")
-    g1, g2 = st.columns(2)
-    with g1:
-        st.markdown(
-            """
-<div class="ops-card">
-  <h4>High-impact drivers</h4>
-  <p>Customer service calls, day charge, international plan, and voice mail plan have strong influence on risk outcomes.</p>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-    with g2:
-        st.markdown(
-            """
-<div class="ops-card">
-  <h4>Operational note</h4>
-  <p>Use batch analytics to prioritize high-risk workload and allocate retention resources by segment.</p>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
 
 def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
-    st.header("Single customer triage")
-    st.caption("High-impact fields are required; advanced fields are optional and prefilled with safe defaults.")
+    render_page_header(
+        "Single Customer Triage",
+        "Score one customer profile, review risk level, and identify high-impact drivers.",
+    )
 
     with st.form("single_prediction_form"):
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("Required inputs")
+            st.markdown("#### Required fields")
             customer_service_calls = st.number_input("Customer Service Calls", min_value=0, max_value=20, value=1)
             total_day_charge = st.number_input("Total Day Charge (USD)", min_value=0.0, max_value=100.0, value=30.0, step=0.1)
             international_plan = st.selectbox("International Plan", ["no", "yes"], index=0)
@@ -525,7 +737,8 @@ def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
             voice_mail_plan = st.selectbox("Voice Mail Plan", ["no", "yes"], index=0)
 
         with c2:
-            with st.expander("Advanced inputs", expanded=False):
+            with st.expander("Advanced fields", expanded=False):
+                st.caption("Optional operational fields with safe defaults")
                 state = st.text_input("State", value="OH", max_chars=2, help="Two-letter US state code")
                 account_length = st.number_input("Account Length (days)", min_value=0, max_value=500, value=100)
                 area_code = st.selectbox("Area Code", [408, 415, 510], index=1)
@@ -540,14 +753,14 @@ def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
         return
 
     if not api_ok:
-        st.error("API is unavailable. Verify backend connectivity before scoring.")
+        render_alert("error", "API is unavailable. Verify backend connectivity before scoring.")
         return
     if not model_loaded:
-        st.error("Model is not loaded on the backend. Check service startup logs.")
+        render_alert("error", "Model is not loaded on the backend. Check service startup logs.")
         return
 
     if len(state.strip()) != 2:
-        st.error("State must be a 2-character abbreviation.")
+        render_alert("warning", "State must be a 2-character abbreviation.")
         return
 
     payload = {
@@ -572,7 +785,7 @@ def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
         result, error = api_predict(payload)
 
     if error:
-        st.error(error)
+        render_alert("error", error)
         return
 
     churn_probability = float(result.get("churn_probability", 0.0))
@@ -580,29 +793,28 @@ def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
     churn = bool(result.get("churn", False))
     contributions = result.get("feature_contributions", [])
 
-    st.markdown("### Prediction outcome")
+    st.markdown('<h3 class="section-title">Prediction outcome</h3>', unsafe_allow_html=True)
     outcome_text = "Customer flagged as likely to churn" if churn else "Customer not flagged for churn"
     st.markdown(
-        f'<div class="result-banner {risk_level}">{outcome_text}</div>',
+        f'<div class="result-banner result-{risk_level}">{outcome_text}</div>',
         unsafe_allow_html=True,
     )
 
-    m1, m2, m3 = st.columns(3)
-    with m1:
+    k1, k2, k3 = st.columns(3)
+    with k1:
         st.metric("Churn probability", f"{churn_probability:.1%}")
-    with m2:
+    with k2:
         st.metric("Risk level", risk_level.title())
-    with m3:
+    with k3:
         st.metric("Recommended action", classify_recommended_action(risk_level, churn_probability))
 
     st.progress(churn_probability, text=f"Probability confidence: {churn_probability:.1%}")
 
-    st.markdown("### Driver analysis")
+    st.markdown('<h3 class="section-title">Driver analysis</h3>', unsafe_allow_html=True)
     if not contributions:
-        st.info("No feature contribution breakdown returned by the API for this prediction.")
+        render_alert("info", "No feature contribution breakdown returned by the API for this prediction.")
     else:
         contrib_df = pd.DataFrame(contributions)
-        contrib_df["direction"] = contrib_df["contribution"].apply(lambda x: "Risk Up" if x > 0 else "Protective")
         contrib_df = contrib_df.sort_values("contribution", key=lambda s: s.abs(), ascending=False)
 
         fig = go.Figure(
@@ -611,27 +823,26 @@ def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
                     y=list(reversed(contrib_df["feature"].tolist())),
                     x=list(reversed(contrib_df["contribution"].tolist())),
                     orientation="h",
-                    marker_color=["#b03a2e" if v > 0 else "#1e7a4d" for v in reversed(contrib_df["contribution"].tolist())],
+                    marker_color=[
+                        RISK_COLORS["high"] if v > 0 else RISK_COLORS["low"]
+                        for v in reversed(contrib_df["contribution"].tolist())
+                    ],
                 )
             ]
         )
-        fig.update_layout(
-            xaxis_title="Contribution to churn prediction",
-            yaxis_title="",
-            height=max(320, len(contrib_df) * 38),
-            margin=dict(l=0, r=0, t=10, b=30),
-        )
+        fig = apply_plotly_theme(fig, height=max(320, len(contrib_df) * 38), title="Feature contribution impact")
+        fig.update_layout(xaxis_title="Contribution to churn prediction", yaxis_title="")
         st.plotly_chart(fig, use_container_width=True)
 
-        c1, c2 = st.columns(2)
-        with c1:
+        d1, d2 = st.columns(2)
+        with d1:
             st.caption("Top risk-increasing drivers")
             st.dataframe(
                 contrib_df[contrib_df["contribution"] > 0][["feature", "contribution"]].head(5),
                 use_container_width=True,
                 hide_index=True,
             )
-        with c2:
+        with d2:
             st.caption("Top protective drivers")
             st.dataframe(
                 contrib_df[contrib_df["contribution"] < 0][["feature", "contribution"]].head(5),
@@ -644,45 +855,48 @@ def render_single_prediction(api_ok: bool, model_loaded: bool) -> None:
 
 
 def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
-    st.header("Batch operations")
-    st.caption("Upload customer records, run scoring, and operationalize retention prioritization.")
-
-    st.markdown("### Input requirements")
-    req_df = pd.DataFrame(
-        {
-            "API field": list(REQUIRED_BATCH_COLUMNS.keys()),
-            "Accepted source column names": [", ".join(v) for v in REQUIRED_BATCH_COLUMNS.values()],
-        }
+    render_page_header(
+        "Batch Operations",
+        "Upload customer data, run bulk scoring, and operationalize retention actions.",
     )
-    st.dataframe(req_df, use_container_width=True, hide_index=True)
 
-    template_df = pd.DataFrame(
-        [
+    with st.expander("Input schema and template", expanded=True):
+        req_df = pd.DataFrame(
             {
-                "State": "OH",
-                "Account_Length": 100,
-                "Area_Code": 415,
-                "International_Plan": "no",
-                "Voice_Mail_Plan": "yes",
-                "Number_Vmail_Messages": 25,
-                "Total_Day_Calls": 110,
-                "Total_Day_Charge": 45.07,
-                "Total_Eve_Calls": 99,
-                "Total_Eve_Charge": 16.78,
-                "Total_Night_Calls": 91,
-                "Total_Night_Charge": 11.01,
-                "Total_Intl_Calls": 3,
-                "Total_Intl_Charge": 2.70,
-                "Customer_Service_Calls": 1,
+                "API field": list(REQUIRED_BATCH_COLUMNS.keys()),
+                "Accepted source column names": [", ".join(v) for v in REQUIRED_BATCH_COLUMNS.values()],
             }
-        ]
-    )
-    st.download_button(
-        "Download CSV template",
-        data=template_df.to_csv(index=False),
-        file_name="batch_input_template.csv",
-        mime="text/csv",
-    )
+        )
+        st.dataframe(req_df, use_container_width=True, hide_index=True)
+        st.markdown('<div class="table-hint">Required columns are validated before scoring.</div>', unsafe_allow_html=True)
+
+        template_df = pd.DataFrame(
+            [
+                {
+                    "State": "OH",
+                    "Account_Length": 100,
+                    "Area_Code": 415,
+                    "International_Plan": "no",
+                    "Voice_Mail_Plan": "yes",
+                    "Number_Vmail_Messages": 25,
+                    "Total_Day_Calls": 110,
+                    "Total_Day_Charge": 45.07,
+                    "Total_Eve_Calls": 99,
+                    "Total_Eve_Charge": 16.78,
+                    "Total_Night_Calls": 91,
+                    "Total_Night_Charge": 11.01,
+                    "Total_Intl_Calls": 3,
+                    "Total_Intl_Charge": 2.70,
+                    "Customer_Service_Calls": 1,
+                }
+            ]
+        )
+        st.download_button(
+            "Download CSV template",
+            data=template_df.to_csv(index=False),
+            file_name="batch_input_template.csv",
+            mime="text/csv",
+        )
 
     uploaded = st.file_uploader("Upload customer CSV", type=["csv"])
 
@@ -692,22 +906,22 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
     try:
         source_df = pd.read_csv(uploaded)
     except Exception as exc:
-        st.error(f"Could not read uploaded CSV: {exc}")
+        render_alert("error", f"Could not read uploaded CSV: {exc}")
         return
 
     if source_df.empty:
-        st.warning("Uploaded file is empty. Please provide at least one customer row.")
+        render_alert("warning", "Uploaded file is empty. Please provide at least one customer row.")
         return
 
     st.caption(f"Loaded rows: {len(source_df)}")
     st.dataframe(source_df.head(10), use_container_width=True)
 
     required_resolved, optional_resolved, missing_required, mapping_df = resolve_batch_column_mapping(source_df)
-    st.caption("Column mapping summary")
+    st.markdown("#### Column mapping summary")
     st.dataframe(mapping_df, use_container_width=True, hide_index=True)
 
     if missing_required:
-        st.error("Missing required columns for batch scoring:")
+        render_alert("error", "Missing required columns for batch scoring:")
         for msg in missing_required:
             st.write(f"- {msg}")
         return
@@ -715,22 +929,23 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
     customers, valid_indices, invalid_rows = build_batch_customers(source_df, required_resolved, optional_resolved)
 
     if invalid_rows:
-        st.warning(
-            "Some rows contain invalid values and will be excluded from scoring. "
-            f"CSV row numbers: {', '.join(map(str, invalid_rows[:20]))}"
+        render_alert(
+            "warning",
+            "Some rows contain invalid values and were excluded. "
+            f"CSV row numbers: {', '.join(map(str, invalid_rows[:20]))}",
         )
 
-    st.info(f"Rows prepared for scoring: {len(customers)} of {len(source_df)}")
+    render_alert("info", f"Rows prepared for scoring: {len(customers)} of {len(source_df)}")
 
     if len(customers) == 0:
-        st.error("No valid rows are available for scoring after validation.")
+        render_alert("error", "No valid rows are available for scoring after validation.")
         return
 
     if not api_ok:
-        st.error("API is unavailable. Verify backend connectivity before batch scoring.")
+        render_alert("error", "API is unavailable. Verify backend connectivity before batch scoring.")
         return
     if not model_loaded:
-        st.error("Model is not loaded on the backend. Check service startup logs.")
+        render_alert("error", "Model is not loaded on the backend. Check service startup logs.")
         return
 
     if st.button("Run batch prediction", use_container_width=True):
@@ -738,20 +953,24 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
             predictions, error = api_predict_batch(customers)
 
         if error:
-            st.error(error)
+            render_alert("error", error)
             return
 
         if len(predictions) != len(customers):
-            st.error(
+            render_alert(
+                "error",
                 "Batch response size mismatch. "
-                f"Expected {len(customers)} predictions but received {len(predictions)}."
+                f"Expected {len(customers)} predictions but received {len(predictions)}.",
             )
             return
 
         working_df = source_df.copy().iloc[valid_indices].reset_index(drop=True)
         pred_df = pd.DataFrame(predictions)
         pred_df["recommended_action"] = pred_df.apply(
-            lambda row: classify_recommended_action(str(row.get("risk_level", "low")), float(row.get("churn_probability", 0.0))),
+            lambda row: classify_recommended_action(
+                str(row.get("risk_level", "low")),
+                float(row.get("churn_probability", 0.0)),
+            ),
             axis=1,
         )
 
@@ -762,7 +981,7 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
     if output_df is None or not isinstance(output_df, pd.DataFrame) or output_df.empty:
         return
 
-    st.markdown("### Results controls")
+    st.markdown('<h3 class="section-title">Results controls</h3>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         risk_filter = st.multiselect("Risk levels", options=RISK_ORDER, default=RISK_ORDER)
@@ -771,11 +990,7 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
     with c3:
         min_probability = st.slider("Minimum probability", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
     with c4:
-        sort_field = st.selectbox(
-            "Sort by",
-            ["churn_probability", "risk_level", "churn"],
-            index=0,
-        )
+        sort_field = st.selectbox("Sort by", ["churn_probability", "risk_level", "churn"], index=0)
 
     filtered = output_df.copy()
     if risk_filter:
@@ -784,6 +999,7 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
         filtered = filtered[filtered["churn"] == True]
     elif churn_filter == "No churn only":
         filtered = filtered[filtered["churn"] == False]
+
     filtered = filtered[filtered["churn_probability"] >= min_probability]
 
     if sort_field == "risk_level":
@@ -794,99 +1010,104 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
         filtered = filtered.sort_values(sort_field, ascending=False)
 
     if filtered.empty:
-        st.warning("No rows match the selected filters. Adjust filters to view analytics.")
+        render_alert("warning", "No rows match the selected filters. Adjust filters to view analytics.")
         return
 
-    st.markdown("### Triage KPIs")
+    st.markdown('<h3 class="section-title">Triage KPIs</h3>', unsafe_allow_html=True)
     total_customers = len(filtered)
-    churn_count = int(filtered["churn"].sum()) if total_customers else 0
-    avg_probability = float(filtered["churn_probability"].mean()) if total_customers else 0.0
-    high_risk_count = int((filtered["risk_level"] == "high").sum()) if total_customers else 0
+    churn_count = int(filtered["churn"].sum())
+    avg_probability = float(filtered["churn_probability"].mean())
+    high_risk_count = int((filtered["risk_level"] == "high").sum())
+    churn_rate = churn_count / total_customers
 
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
-        st.metric("Total customers", total_customers)
+        render_kpi_card("Total customers", f"{total_customers}")
     with k2:
-        st.metric("Predicted churn", churn_count)
+        render_kpi_card("Predicted churn", f"{churn_count}")
     with k3:
-        churn_rate = (churn_count / total_customers) if total_customers else 0.0
-        st.metric("Predicted churn rate", f"{churn_rate:.1%}")
+        render_kpi_card("Predicted churn rate", f"{churn_rate:.1%}")
     with k4:
-        st.metric("Average probability", f"{avg_probability:.1%}")
+        render_kpi_card("Average probability", f"{avg_probability:.1%}")
     with k5:
-        st.metric("High-risk workload", high_risk_count)
+        render_kpi_card("High-risk workload", f"{high_risk_count}")
 
-    st.markdown("### Operational analytics")
-    a1, a2 = st.columns(2)
+    summary_tab, segment_tab, driver_tab, table_tab = st.tabs(
+        ["Summary", "Segments", "Drivers", "Scored Table"]
+    )
 
-    with a1:
-        risk_counts = filtered["risk_level"].value_counts().reindex(RISK_ORDER, fill_value=0)
-        risk_fig = go.Figure(
-            data=[
-                go.Bar(
-                    x=risk_counts.index.tolist(),
-                    y=risk_counts.values.tolist(),
-                    marker_color=["#1e7a4d", "#a56a00", "#b03a2e"],
-                )
-            ]
-        )
-        risk_fig.update_layout(title="Risk distribution", xaxis_title="Risk level", yaxis_title="Customers", height=340)
-        st.plotly_chart(risk_fig, use_container_width=True)
+    with summary_tab:
+        p1, p2 = st.columns(2)
+        with p1:
+            risk_counts = filtered["risk_level"].value_counts().reindex(RISK_ORDER, fill_value=0)
+            risk_fig = go.Figure(
+                data=[
+                    go.Bar(
+                        x=risk_counts.index.tolist(),
+                        y=risk_counts.values.tolist(),
+                        marker_color=[RISK_COLORS["low"], RISK_COLORS["medium"], RISK_COLORS["high"]],
+                    )
+                ]
+            )
+            risk_fig = apply_plotly_theme(risk_fig, height=340, title="Risk distribution")
+            risk_fig.update_layout(xaxis_title="Risk level", yaxis_title="Customers")
+            st.plotly_chart(risk_fig, use_container_width=True)
 
-    with a2:
-        prob_fig = go.Figure(data=[go.Histogram(x=filtered["churn_probability"], nbinsx=20, marker_color="#0f4c81")])
-        prob_fig.update_layout(
-            title="Churn probability distribution",
-            xaxis_title="Probability",
-            yaxis_title="Customer count",
-            height=340,
-        )
-        st.plotly_chart(prob_fig, use_container_width=True)
+        with p2:
+            prob_fig = go.Figure(
+                data=[go.Histogram(x=filtered["churn_probability"], nbinsx=20, marker_color=PLOT_COLORS[0])]
+            )
+            prob_fig = apply_plotly_theme(prob_fig, height=340, title="Churn probability distribution")
+            prob_fig.update_layout(xaxis_title="Probability", yaxis_title="Customer count")
+            st.plotly_chart(prob_fig, use_container_width=True)
 
-    st.markdown("### Top predicted churn customers")
-    top_n = st.slider("Rows to display", min_value=5, max_value=100, value=20, step=5)
-    top_customers = filtered.sort_values("churn_probability", ascending=False).head(top_n)
-    st.dataframe(top_customers, use_container_width=True, hide_index=True)
+    with segment_tab:
+        available_segments = [col for col in SEGMENT_COLUMNS if col in filtered.columns]
+        if not available_segments:
+            render_alert("info", "No standard segment columns found in uploaded data for segment analytics.")
+        else:
+            selected_segment = st.selectbox("Segment by", available_segments)
+            segment_df = build_segment_breakdown(filtered, selected_segment)
+            st.dataframe(segment_df, use_container_width=True, hide_index=True)
 
-    st.markdown("### Segment breakdowns")
-    available_segments = [col for col in SEGMENT_COLUMNS if col in filtered.columns]
-    if not available_segments:
-        st.info("No standard segment columns found in uploaded file for segment-level analytics.")
-    else:
-        selected_segment = st.selectbox("Segment by", available_segments)
-        segment_df = build_segment_breakdown(filtered, selected_segment)
-        st.dataframe(segment_df, use_container_width=True, hide_index=True)
+    with driver_tab:
+        high_risk_subset = filtered[filtered["risk_level"] == "high"]
+        driver_source = high_risk_subset if not high_risk_subset.empty else filtered
+        drivers = aggregate_feature_drivers(driver_source)
+        if drivers.empty:
+            render_alert("info", "Feature contribution data was not present in results.")
+        else:
+            top_drivers = drivers.head(12)
+            driver_fig = go.Figure(
+                data=[
+                    go.Bar(
+                        y=list(reversed(top_drivers["feature"].tolist())),
+                        x=list(reversed(top_drivers["total_contribution"].tolist())),
+                        orientation="h",
+                        marker_color=[
+                            RISK_COLORS["high"] if v > 0 else RISK_COLORS["low"]
+                            for v in reversed(top_drivers["total_contribution"].tolist())
+                        ],
+                    )
+                ]
+            )
+            driver_fig = apply_plotly_theme(
+                driver_fig,
+                height=max(340, len(top_drivers) * 32),
+                title="Aggregated top feature drivers",
+            )
+            driver_fig.update_layout(xaxis_title="Net contribution", yaxis_title="")
+            st.plotly_chart(driver_fig, use_container_width=True)
+            st.dataframe(top_drivers, use_container_width=True, hide_index=True)
 
-    st.markdown("### Feature-driver summary")
-    high_risk_subset = filtered[filtered["risk_level"] == "high"]
-    driver_source = high_risk_subset if not high_risk_subset.empty else filtered
-    drivers = aggregate_feature_drivers(driver_source)
-    if drivers.empty:
-        st.info("Feature contribution data was not present in results.")
-    else:
-        top_drivers = drivers.head(12)
-        driver_fig = go.Figure(
-            data=[
-                go.Bar(
-                    y=list(reversed(top_drivers["feature"].tolist())),
-                    x=list(reversed(top_drivers["total_contribution"].tolist())),
-                    orientation="h",
-                    marker_color=["#b03a2e" if v > 0 else "#1e7a4d" for v in reversed(top_drivers["total_contribution"].tolist())],
-                )
-            ]
-        )
-        driver_fig.update_layout(
-            title="Aggregated top drivers",
-            xaxis_title="Net contribution",
-            yaxis_title="",
-            height=max(340, len(top_drivers) * 32),
-        )
-        st.plotly_chart(driver_fig, use_container_width=True)
-        st.dataframe(top_drivers, use_container_width=True, hide_index=True)
+    with table_tab:
+        top_n = st.slider("Rows to display", min_value=10, max_value=200, value=40, step=10)
+        top_customers = filtered.sort_values("churn_probability", ascending=False).head(top_n)
+        st.dataframe(top_customers, use_container_width=True, hide_index=True)
 
-    st.markdown("### Exports")
-    exp1, exp2 = st.columns(2)
-    with exp1:
+    st.markdown('<h3 class="section-title">Exports</h3>', unsafe_allow_html=True)
+    e1, e2 = st.columns(2)
+    with e1:
         st.download_button(
             "Download filtered results",
             data=filtered.to_csv(index=False),
@@ -894,7 +1115,7 @@ def render_batch_operations(api_ok: bool, model_loaded: bool) -> None:
             mime="text/csv",
             use_container_width=True,
         )
-    with exp2:
+    with e2:
         high_risk_export = filtered[filtered["risk_level"] == "high"]
         st.download_button(
             "Download high-risk workload",
