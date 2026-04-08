@@ -213,7 +213,7 @@ This repo now includes `railway.toml` for Railway config-as-code.
 
 Current Railway configuration:
 - Builder: `DOCKERFILE`
-- Dockerfile path: `Dockerfile`
+- Dockerfile path: `Dockerfile.api`
 - Healthcheck path: `/health`
 - Healthcheck timeout: `300` seconds
 - Restart policy: `ON_FAILURE` (max retries: `10`)
