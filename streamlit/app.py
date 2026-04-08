@@ -111,11 +111,24 @@ st.markdown(
 }
 
 .layout-shell {
-  background: linear-gradient(135deg, #f7fbff 0%, #eef3fa 100%);
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border: 1px solid #d5e1ee;
   border-radius: var(--radius-lg);
-  padding: var(--space-6) var(--space-6) var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-6);
   margin-bottom: var(--space-5);
+  box-shadow: 0 4px 20px rgba(18, 62, 99, 0.06);
+  position: relative;
+}
+
+.layout-shell:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, var(--color-brand-600), #2d7cd3);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .layout-header {
@@ -141,10 +154,11 @@ st.markdown(
 }
 
 .card-panel {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
   border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-5);
+  box-shadow: 0 1px 4px rgba(15, 36, 56, 0.03);
 }
 
 .card-panel h4 {
@@ -161,10 +175,11 @@ st.markdown(
 }
 
 .card-kpi {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
+  min-height: 82px;
 }
 
 .card-kpi .kpi-label {
@@ -259,11 +274,12 @@ div[data-testid="stDataFrame"] {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  background: #ffffff;
 }
 
 div[data-testid="stMetric"] {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.7rem;
 }
@@ -282,7 +298,9 @@ div[data-testid="stExpander"] {
 
 .stButton > button, .stDownloadButton > button {
   border-radius: var(--radius-sm);
-  border: 1px solid #b9c9db;
+  border: 1px solid #b8cce3;
+  background: #ffffff;
+  color: var(--color-brand-700);
   transition: transform 0.16s ease, box-shadow 0.16s ease;
   font-weight: 600;
 }
@@ -290,6 +308,7 @@ div[data-testid="stExpander"] {
 .stButton > button:hover, .stDownloadButton > button:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(20, 93, 160, 0.14);
+  border-color: #8fb2d8;
 }
 
 .stButton > button:focus-visible,
@@ -302,6 +321,23 @@ hr {
   margin-top: 0.8rem;
   margin-bottom: 0.8rem;
   border-color: var(--color-border);
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+  gap: 8px;
+}
+
+div[data-testid="stTabs"] button[role="tab"] {
+  border: 1px solid #d4dfec;
+  border-radius: 10px;
+  padding: 0.3rem 0.8rem;
+  background: #ffffff;
+}
+
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+  border-color: #8fb2d8;
+  background: #edf5fd;
+  color: #0f3f68;
 }
 
 @media (max-width: 980px) {
@@ -664,16 +700,20 @@ def render_sidebar_status(api_ok: bool, model_loaded: bool, health_message: str)
     st.sidebar.caption(f"Endpoint: `{API_URL}`")
     st.sidebar.divider()
 
-    if "workspace" not in st.session_state:
-        st.session_state["workspace"] = "Overview"
+    options = ["Overview", "Single Prediction", "Batch Operations"]
+    current_workspace = st.session_state.get("workspace", "Overview")
+    if current_workspace not in options:
+        current_workspace = "Overview"
 
     st.sidebar.caption("Workspace")
-    return st.sidebar.radio(
+    selected_workspace = st.sidebar.radio(
         "Workspace",
-        ["Overview", "Single Prediction", "Batch Operations"],
+        options,
+        index=options.index(current_workspace),
         label_visibility="collapsed",
-        key="workspace",
     )
+    st.session_state["workspace"] = selected_workspace
+    return selected_workspace
 
 
 def render_overview(api_ok: bool, model_loaded: bool) -> None:
@@ -708,7 +748,7 @@ def render_overview(api_ok: bool, model_loaded: bool) -> None:
 
     a1, a2 = st.columns(2)
     with a1:
-        if st.button("Open single prediction", use_container_width=True):
+        if st.button("Open single prediction", type="primary", use_container_width=True):
             st.session_state["workspace"] = "Single Prediction"
             st.rerun()
     with a2:
